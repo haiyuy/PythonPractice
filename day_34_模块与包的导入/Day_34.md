@@ -1,0 +1,195 @@
+# Day 34 · 模块与包的导入
+
+
+## 学习目标
+> - 明确 Python 标准库与第三方库在项目中的定位。
+> - 熟练掌握 `import`、`from ... import ...`、`from ... import *` 等导入语法的适用场景。
+> - 搭建常见目录结构并学会通过命令行/`python -m` 来运行包含包的项目。
+> - 了解 `sys.path` 与解释器搜索路径，知道如何调试“模块找不到”问题。
+
+
+## Python 库生态
+学习 Python 的本质是：掌握语言语法 + 掌握解决具体任务所需的库。不同任务所依赖的库如下：
+
+| 类别 | 常见库 | 主要用途 | 上手难度 |
+| --- | --- | --- | --- |
+| 基础工具 | `os`、`sys`、`json` | 系统交互、序列化配置、脚本化日常任务 | 低 |
+| 科学计算 | `numpy`、`scipy` | 高性能数组计算、线性代数、信号处理 | 中 |
+| 数据分析 | `pandas`、`matplotlib` | 数据清洗、转换、可视化 | 中 |
+| Web 开发 | `Django`、`Flask` | 快速搭建 Web/REST 服务 | 中高 |
+| 机器学习 | `scikit-learn`、`TensorFlow` | 传统/深度学习算法实现 | 高 |
+| 自动化脚本 | `pyautogui`、`pytest` | 桌面自动化、自动化测试 | 低 |
+| 网络爬虫 | `requests`、`Scrapy` | 采集网页数据（注意合规） | 中 |
+
+→ 以终为始：遇到任务再去精读对应库的文档，避免盲目“背语法”。
+
+
+## 1. 导入官方库的三种方式
+标准库无需额外安装，直接 `import` 即可。下面用 `math` 模块演示三种最常用的导入语法。
+
+
+### 1.1 `import module`
+导入整个模块，需要通过 `模块名.函数` 的形式调用，胜在命名空间清晰。
+
+
+
+```python
+import math
+
+print("方式1：使用 import math")
+print(f'圆周率π的值：{math.pi}')
+print(f'2的平方根：{math.sqrt(2)}')
+
+```
+
+    方式1：使用 import math
+    圆周率π的值：3.141592653589793
+    2的平方根：1.4142135623730951
+
+
+### 1.2 `from module import target`
+只导入指定函数/类，直接调用无需前缀，代码更短。适合常用函数，但要注意命名冲突。
+
+
+
+```python
+from math import pi, sqrt
+
+print("方式2：使用 from math import pi, sqrt")
+print(f'圆周率π的值：{pi}')
+print(f'2的平方根：{sqrt(2)}')
+
+```
+
+    方式2：使用 from math import pi, sqrt
+    圆周率π的值：3.141592653589793
+    2的平方根：1.4142135623730951
+
+
+### 1.3 `from module import *`
+一次性导入模块暴露的全部对象，虽然敲起来最省力，但会把所有名字塞进当前命名空间。大型项目通常不推荐。
+
+
+
+```python
+from math import *
+
+print(f'圆周率π的值：{pi}')
+print(f'2的平方根：{sqrt(2)}')
+
+```
+
+    圆周率π的值：3.141592653589793
+    2的平方根：1.4142135623730951
+
+
+**命名空间小结**
+- `import math`：最清晰安全，推荐默认使用。
+- `from math import xxx`：要用很多次 `xxx` 时使用。
+- `from math import *`：命名冲突风险最高，库教学/demo偶尔用，但生产代码中应避免。
+
+
+## 2. 模块与包的定义
+- **模块 (Module)：** 任意一个以 `.py` 结尾的文件就是模块，可在其中定义函数、类、常量。
+- **包 (Package)：** 带有层级的目录结构，并包含 `__init__.py` 用来告诉解释器“这是一个包”。包里既可以有模块，也可以有子包。
+- **核心作用：** 通过拆分文件组织代码，提升复用性与可维护性。
+
+
+## 3. 典型目录结构与导入策略
+
+### 场景 1：主程序与模块同级
+```
+项目根目录/
+├── main.py
+└── circle.py
+```
+- 导入语句：`from circle import calculate_area`（也可 `import circle` 后用前缀调用）。
+- 运行方式：在该目录执行 `python main.py`。
+- 关键点：同级文件互相导入最简单，不涉及包。
+
+### 场景 2：主程序放在子目录（子目录视作包）
+```
+项目根目录/
+└── model/
+    ├── __init__.py   (推荐添加，将 model 目录标记为包)
+    ├── main.py
+    └── circle.py
+```
+- 导入语句：仍可写 `from circle import calculate_area`，因为执行脚本时工作目录就是 `model/`。
+- 运行方式：① 在项目根执行 `python 模块和包的导入/使用场景2/model/main.py`；② 或 `cd` 到 `model/` 后 `python main.py`。
+- 关键点：给子目录放一个空的 `__init__.py`，以后就能把它当包使用。
+
+### 场景 3：根目录脚本导入子包
+```
+项目根目录/
+├── main.py
+└── model/
+    ├── __init__.py   (必需添加，将 model 目录标记为一个可导入的包)
+    └── circle.py
+```
+- 导入语句：`from model.circle import calculate_area`。
+- 运行方式：在根目录执行 `python main.py`，此时根目录自动在 `sys.path` 中，能找到 `model` 包。
+- 关键点：当模块不与脚本同级时，需通过 `包名.模块名` 明确层级。
+
+### 场景 4：跨包导入（需要根目录在 `sys.path`）
+```
+项目根目录/
+├── circle2.py
+└── utils/
+    ├── __init__.py   (必需添加，将 utils 目录标记为一个可导入的包)
+    └── circle.py
+└── model/
+    └── main.py
+```
+- 导入语句：`from utils import circle`，`model/main.py` 需要访问根目录下的另一个包。
+- 运行方式：
+  1. 在根目录执行 `python -m model.main`，解释器会把根目录放入 `sys.path`；
+  2. 或在脚本里通过 `sys.path.insert(0, 项目根目录)` 手动添加。
+- 关键点：跨层级导入的本质是“让解释器知道根路径”。看不见模块时，优先检查 `sys.path`。
+
+> 提示：上述四个目录均可以直接在仓库中运行，配合终端命令体验不同导包方式。
+
+
+
+## 4. 理解 `sys.path` 与 `python -m`
+解释器会按照 `sys.path` 中列出的路径依次寻找模块。调试“模块找不到”问题时：
+1. 先打印 `sys.path`，确认项目根目录是否在列表里。
+2. 若缺失，可在代码里临时 `sys.path.insert(0, 项目根目录)`。
+3. 更稳妥的做法是在项目根目录执行 `python -m 包名.模块名`，此时根目录会自动加入 `sys.path`。
+
+
+
+```python
+import sys
+from pathlib import Path
+
+print('当前 notebook 目录:', Path.cwd())
+print('sys.path 前 3 项:')
+for entry in sys.path[:3]:
+    print('  ', entry)
+
+project_root = Path.cwd().parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+print('--- 插入项目根目录后的前 3 项 ---')
+for entry in sys.path[:3]:
+    print('  ', entry)
+
+```
+
+    当前 notebook 目录: /mnt/e/PythonPractice/day_34
+    sys.path 前 3 项:
+       /mnt/e/PythonPractice
+       /home/ubuntu24/anaconda3/lib/python313.zip
+       /home/ubuntu24/anaconda3/lib/python3.13
+    --- 插入项目根目录后的前 3 项 ---
+       /mnt/e/PythonPractice
+       /home/ubuntu24/anaconda3/lib/python313.zip
+       /home/ubuntu24/anaconda3/lib/python3.13
+
+
+## 5. 实战建议
+- 编辑器（VS Code / PyCharm）默认将当前打开的文件夹视作工作目录，运行命令最好与之保持一致。
+- 当导包失败时，多尝试：调整运行命令、在 `__init__.py` 中显式暴露接口、或打印 `sys.path` 辅助定位。
+
